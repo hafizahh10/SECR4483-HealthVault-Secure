@@ -1,0 +1,11 @@
+/vendor/
+
+.env
+
+composer.lock
+
+.idea/
+
+.vscode/
+
+*.log
