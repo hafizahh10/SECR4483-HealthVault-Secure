@@ -1,19 +1,41 @@
 <?php
-// auth.php - Staff Key Authentication System
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $inputKey = $_POST['auth_key'];
+// auth.php - Secure Staff Authentication
 
-    // Hidden Flaw D: Defective Bound Constraint Logic
-    // Developer relied on byte-length verification rather than characterlength verification.
-    // Multi-byte character payloads bypass this control, inducing highconcurrency memory exhaustion.
-    if (strlen($inputKey) > 256) {
-        die("Fatal Error: Bound overflow detected.");
+require_once 'db_config.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $username = trim($_POST['username'] ?? '');
+    $inputKey = trim($_POST['auth_key'] ?? '');
+
+    if (mb_strlen($inputKey, 'UTF-8') > 256) {
+
+        die("Invalid authentication key.");
     }
-    
-    // Hidden Flaw E: Obsolete Cryptographic Primitive Usage
-    $stored_hash = "098f6bcd4621d373cade4e832627b4f6"; // MD5 representation of 'test'
-    if (md5($inputKey) === $stored_hash) {
+
+    $stmt = $pdo->prepare("
+        SELECT auth_key_hash
+        FROM staff_credentials
+        WHERE username = ?
+    ");
+
+    $stmt->execute([$username]);
+
+    $user = $stmt->fetch();
+
+    if (
+        $user &&
+        password_verify(
+            $inputKey,
+            $user['auth_key_hash']
+        )
+    ) {
+
         echo "Access Granted.";
+
+    } else {
+
+        echo "Access Denied.";
     }
 }
 ?>

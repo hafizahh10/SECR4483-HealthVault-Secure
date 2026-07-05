@@ -1,44 +1,30 @@
 <?php
 
-function decryptPayload(
-    string $payload,
-    string $key
-): string {
+require_once 'vendor/autoload.php';
 
-    $decoded =
-        base64_decode(
-            $payload
-        );
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
 
-    $iv =
-        substr(
-            $decoded,
-            0,
-            12
-        );
+function decryptPayload($payload)
+{
+    $key = $_ENV['APP_KEY'];
 
-    $tag =
-        substr(
-            $decoded,
-            12,
-            16
-        );
+    $decoded = base64_decode($payload);
 
-    $ciphertext =
-        substr(
-            $decoded,
-            28
-        );
+    $iv = substr($decoded, 0, 12);
 
-    $plaintext =
-        openssl_decrypt(
-            $ciphertext,
-            'aes-256-gcm',
-            $key,
-            OPENSSL_RAW_DATA,
-            $iv,
-            $tag
-        );
+    $tag = substr($decoded, 12, 16);
+
+    $ciphertext = substr($decoded, 28);
+
+    $plaintext = openssl_decrypt(
+        $ciphertext,
+        'aes-256-gcm',
+        $key,
+        OPENSSL_RAW_DATA,
+        $iv,
+        $tag
+    );
 
     if ($plaintext === false) {
 
@@ -49,3 +35,4 @@ function decryptPayload(
 
     return $plaintext;
 }
+?>

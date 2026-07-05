@@ -1,25 +1,41 @@
 <?php
-// search.php - Patient & Medical Record Search Proxy
+// search.php - Secure Patient Search
+
 require_once 'db_config.php';
 
-$keyword = $_GET['keyword'];
+$keyword = trim($_GET['keyword'] ?? '');
 
-// Hidden Flaw A: SQL Injection via raw string concatenation
-// Note: DB Connection is inadvertently running under high-privilege root access
+$stmt = $pdo->prepare("
+    SELECT id, name, illness_history
+    FROM patient_records
+    WHERE name LIKE ?
+");
 
-$sql = "SELECT id, name, illness_history FROM patient_records WHERE name LIKE
-'%" . $keyword . "%'";
-$result = $conn->query($sql);
+$stmt->execute(["%{$keyword}%"]);
 
-if ($result->num_rows > 0) {
-    while($row = $result->fetch_assoc()) {
-        // Hidden Flaw B: Reflected Cross-Site Scripting (Context-Agnostic Echo)
-        echo "<div>Result found for keyword: " . $keyword . "<br>";
-        echo "Patient: " . $row['name'] . " | History: " .
-$row['illness_history'] . "</div><hr>";
+$results = $stmt->fetchAll();
+
+if (count($results) > 0) {
+
+    foreach ($results as $row) {
+
+        echo "<div>";
+
+        echo "Result found for keyword: "
+            . htmlspecialchars($keyword, ENT_QUOTES, 'UTF-8')
+            . "<br>";
+
+        echo "Patient: "
+            . htmlspecialchars($row['name'], ENT_QUOTES, 'UTF-8')
+            . " | History: "
+            . htmlspecialchars($row['illness_history'], ENT_QUOTES, 'UTF-8');
+
+        echo "</div><hr>";
     }
+
 } else {
-        // Hidden Flaw C: Reflected XSS within error tracking loop
-        echo "No records found for: " . $keyword;
+
+    echo "No records found for: "
+        . htmlspecialchars($keyword, ENT_QUOTES, 'UTF-8');
 }
 ?>

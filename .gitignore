@@ -1,11 +1,11 @@
-/vendor/
-
 .env
+
+/vendor/
 
 composer.lock
 
-.idea/
+*.log
 
 .vscode/
 
-*.log
+.idea/

@@ -1,18 +1,37 @@
 <?php
-// crypto_vault.php - Patient Medical Records Symmetric Protection
+// crypto_vault.php - Secure Medical Record Encryption
+
+require_once 'vendor/autoload.php';
+
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
- $medical_payload = $_POST['payload'];
 
-    // Hidden Flaw F: Insecure Symmetric Block Cipher Mode (AES-128-ECB leaks ciphertext density patterns)
-    // Hidden Flaw G: Cryptographic Key Hardcoding
-    $secret_key = "MedVaultKey123!";
+    $medical_payload = $_POST['payload'] ?? '';
 
-    $encrypted = openssl_encrypt($medical_payload, 'aes-128-ecb', $secret_key);
+    $key = $_ENV['APP_KEY'];
 
-    // THE RUNTIME TRAP: Upgrading to an authenticated AEAD mode (AES-256-GCM)
-    // will trigger an unhandled runtime failure if the developer fails to manually
-    // handle the 12-byte IV initialization, bounds, and explicit Authentication Tag binding.
+    $iv = random_bytes(12);
 
-    echo json_encode(["status" => "vaulted", "data" => $encrypted]);
+    $ciphertext = openssl_encrypt(
+        $medical_payload,
+        'aes-256-gcm',
+        $key,
+        OPENSSL_RAW_DATA,
+        $iv,
+        $tag
+    );
+
+    $serializedPayload = base64_encode(
+        $iv .
+        $tag .
+        $ciphertext
+    );
+
+    echo json_encode([
+        "status" => "vaulted",
+        "data" => $serializedPayload
+    ]);
 }
 ?>
